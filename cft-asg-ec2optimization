@@ -1,0 +1,99 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "myImageId": {
+            "Type": "AWS::EC2::Image::Id"
+        }
+    },
+    "Resources": {
+        "myLaunchTemplate": {
+            "Type": "AWS::EC2::LaunchTemplate",
+            "Properties": {
+                "LaunchTemplateName": {
+                    "Fn::Sub": "${AWS::StackName}-launch-template"
+                },
+                "LaunchTemplateData": {
+                    "BlockDeviceMappings": [
+                        {
+                            "Ebs": {
+                                "VolumeSize": "22",
+                                "VolumeType": "gp2",
+                                "DeleteOnTermination": true,
+                                "Encrypted": true
+                            },
+                            "DeviceName": "/dev/xvdcz"
+                        }
+                    ],
+                    "CreditSpecification": {
+                        "CpuCredits": "unlimited"
+                    },
+                    "ImageId": {
+                        "Ref": "myImageId"
+                    },
+                    "KeyName": "my-key-pair-useast2",
+                    "InstanceType": "t2.micro",
+                    "Monitoring": {
+                        "Enabled": true
+                    },
+                    "SecurityGroupIds": [
+                        "sg-7c227019",
+                        "sg-903004f8"
+                    ]
+                }
+            }
+        },
+        "myASG": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "AutoScalingGroupName": "myASG",
+                "MixedInstancesPolicy": {
+                    "LaunchTemplate": {
+                        "Overrides": [
+                            {
+                                "InstanceType": "c5.18xlarge",
+                                "WeightedCapacity": "18"
+                            },
+                            {
+                                "InstanceType": "c5.24xlarge",
+                                "WeightedCapacity": "24"
+                            },
+                            {
+                                "InstanceType": "c5.2xlarge",
+                                "WeightedCapacity": "2"
+                            },
+                            {
+                                "InstanceType": "c5.4xlarge",
+                                "WeightedCapacity": "4"
+                            }
+                        ]
+                    },
+                    "InstancesDistribution": {
+                        "OnDemandBaseCapacity": 0,
+                        "OnDemandPercentageAboveBaseCapacity": 10,
+                        "SpotAllocationStrategy": "capacity-optimized"
+                    }
+                },
+                "MinSize": 20,
+                "MaxSize": 150,
+                "DesiredCapacity": 100,
+                "HealthCheckGracePeriod": 300,
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": {
+                        "Ref": "myLaunchTemplate"
+                    },
+                    "Version": {
+                        "Fn::GetAtt": [
+                            "myLaunchTemplate",
+                            "LatestVersionNumber"
+                        ]
+                    }
+                },
+                "VPCZoneIdentifier": [
+                    "subnet-5ea0c127",
+                    "subnet-6194ea3b",
+                    "subnet-c934b782"
+                ]
+            }
+        }
+    }
+}
